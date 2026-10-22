@@ -1,0 +1,60 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum InvoiceStatus {
+  PENDING
+  PAID
+  OVERDUE
+}
+
+model User {
+  id           String     @id @default(cuid())
+  email        String     @unique
+  passwordHash String
+  createdAt    DateTime   @default(now())
+  customers    Customer[]
+  invoices     Invoice[]
+}
+
+model Customer {
+  id        String    @id @default(cuid())
+  userId    String
+  name      String
+  email     String?
+  phone     String?
+  createdAt DateTime  @default(now())
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  invoices  Invoice[]
+}
+
+model Invoice {
+  id          String        @id @default(cuid())
+  userId      String
+  customerId  String
+  invoiceNumber String       @unique @default(uuid())
+  issueDate   DateTime      @default(now())
+  dueDate     DateTime
+  total       Float
+  currency    String        @default("USD")
+  status      InvoiceStatus @default(PENDING)
+  notes       String?
+  createdAt   DateTime      @default(now())
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  customer    Customer      @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  payments    Payment[]
+}
+
+model Payment {
+  id        String   @id @default(cuid())
+  invoiceId  String
+  amount     Float
+  method     String   @default("Bank transfer")
+  paidAt     DateTime @default(now())
+  invoice    Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+}
